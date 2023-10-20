@@ -1,12 +1,14 @@
+# Updates are posted at: https://github.com/SDmodding/ModelScriberBlender
 bl_info = {
     "name": "Sleeping Dogs: DE (Model Scriber)",
     "description": "Script that passes commands to noesis & model scriber.",
     "author": "sneakyevil",
-    "version": (1, 0, 0),
+    "version": (1, 0, 1),
     "blender": (2, 80, 0),
     "location": "File > Export",
     "warning": "",
     "support": "COMMUNITY",
+    "tracker_url": "https://github.com/SDmodding/ModelScriberBlender/issues",
     "category": "Import-Export",
 }
 
@@ -57,20 +59,36 @@ class SDModelScriberExport(Operator, ExportHelper):
 
     m_UseModelNameAsTextureName: BoolProperty(
         name = "Use Model Name as Texture Name",
-        description = "Will use export name as texture name.\n\nWarning: If you're exporting model that contains '~' it will split and use name before for texture name.",
+        description = "Will use export name as texture name.\n\nWarning: If you're exporting model that contains '~' it will split and use name before for texture name",
         default = False,
     )
 
     m_HasNormalMap: BoolProperty(
         name = "Has Normal Map",
-        description = "Enable it only when your model uses normal map.",
+        description = "Enable it only when your model uses normal map",
         default = False,
     )
 
     m_HasSpecularLook: BoolProperty(
         name = "Has Specular Look",
-        description = "Enable it only when your model uses specular look.",
+        description = "Enable it only when your model uses specular look",
         default = False,
+    )
+
+    m_RasterState: EnumProperty(
+        name = "Raster State",
+        description = "The way the model renders.",
+        items = (
+            ( "0", "None (Default)", "" ),
+            ( "1", "Normal", "" ),
+            ( "2", "Disable Write", "" ),
+            ( "3", "Invert Disable Write", "" ),
+            ( "4", "Disable Depth Test", "" ),
+            ( "5", "Double Sided (Back Culling)", "" ),
+            ( "6", "Double Sided Alpha", "" ),
+            ( "7", "Invert Culling", "" ),
+        ),
+        default = "0",
     )
 
     m_ApplyModifiers: BoolProperty(
@@ -80,7 +98,7 @@ class SDModelScriberExport(Operator, ExportHelper):
 
     m_SelectionOnly: BoolProperty(
         name = "Selection Only",
-        description = "Export selected objects only.",
+        description = "Export selected objects only",
         default = False,
     )
 
@@ -99,6 +117,12 @@ class SDModelScriberExport(Operator, ExportHelper):
         m_Model.label(text="Model", icon="MESH_DATA")
         m_Model.prop(self, "m_HasNormalMap")
         m_Model.prop(self, "m_HasSpecularLook")
+
+        m_RasterRow = m_Model.row(align=True)
+        m_RasterRow.scale_x = 0.5
+        m_RasterLabel = m_RasterRow.label(text="Raster State:")
+        m_RasterRow.scale_x = 0.0
+        m_RasterRow.prop(self, "m_RasterState", text="")
 
         m_Object = layout.box()
         m_Object.label(text="Object", icon="OBJECT_DATA")
@@ -168,6 +192,9 @@ class SDModelScriberExport(Operator, ExportHelper):
                 m_ModelScriberCmd += " -texnormal \"" + m_TextureName + "_N\""
             if self.m_HasSpecularLook:             
                 m_ModelScriberCmd += " -texspecular \"" + m_TextureName + "_S\""
+
+        # Raster State
+        m_ModelScriberCmd += " -rasterstate " + self.m_RasterState
 
         subprocess.run(m_ModelScriberCmd, shell=True)
 
