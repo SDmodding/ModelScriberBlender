@@ -3,7 +3,7 @@ bl_info = {
     "name": "Sleeping Dogs: DE (Model Scriber)",
     "description": "Script that passes commands to noesis & model scriber.",
     "author": "sneakyevil",
-    "version": (1, 0, 1),
+    "version": (1, 0, 2),
     "blender": (2, 80, 0),
     "location": "File > Export",
     "warning": "",
@@ -52,32 +52,14 @@ class SDModelScriberExport(Operator, ExportHelper):
         maxlen = 255,
     )
 
-    m_TextureName: StringProperty(
-        name = "",
-        description = "Name of the texture used with Texture Scriber.\n\nSuffixes:\nDiffuse: '_D'\nNormal Map: '_N'\nSpecular Look: '_S'",
-    )
+    # Texture
+    m_TextureName: StringProperty(name="", description="Name of the texture used with Texture Scriber.\n\nSuffixes:\nDiffuse: '_D'\nNormal Map: '_N'\nSpecular Look: '_S'")
+    m_UseModelNameAsTextureName: BoolProperty( name="Use Model Name as Texture Name", description="Will use export name as texture name.\n\nWarning: If you're exporting model that contains '~' it will split and use name before for texture name", default=False )
 
-    m_UseModelNameAsTextureName: BoolProperty(
-        name = "Use Model Name as Texture Name",
-        description = "Will use export name as texture name.\n\nWarning: If you're exporting model that contains '~' it will split and use name before for texture name",
-        default = False,
-    )
-
-    m_HasNormalMap: BoolProperty(
-        name = "Has Normal Map",
-        description = "Enable it only when your model uses normal map",
-        default = False,
-    )
-
-    m_HasSpecularLook: BoolProperty(
-        name = "Has Specular Look",
-        description = "Enable it only when your model uses specular look",
-        default = False,
-    )
-
-    m_RasterState: EnumProperty(
-        name = "Raster State",
-        description = "The way the model renders.",
+    # Model
+    m_HasNormalMap: BoolProperty(name="Has Normal Map", description="Enable it only when your model uses normal map", default=False)
+    m_HasSpecularLook: BoolProperty(name="Has Specular Look", description="Enable it only when your model uses specular look", default=False)
+    m_RasterState: EnumProperty(name="Raster State", description="The way the model renders.",
         items = (
             ( "0", "None (Default)", "" ),
             ( "1", "Normal", "" ),
@@ -88,19 +70,19 @@ class SDModelScriberExport(Operator, ExportHelper):
             ( "6", "Double Sided Alpha", "" ),
             ( "7", "Invert Culling", "" ),
         ),
-        default = "0",
+        default = "0"
+    )
+    m_ExportMode: EnumProperty(name="Export Mode", description="Basically vertex decl export type.",
+        items = (
+            ( "uvn", "UVN (Default)", "" ),
+            ( "skinned", "Skinned (WIP)", "" )
+        ),
+        default = "uvn"
     )
 
-    m_ApplyModifiers: BoolProperty(
-        name = "Apply Modifiers",
-        default = False,
-    )
-
-    m_SelectionOnly: BoolProperty(
-        name = "Selection Only",
-        description = "Export selected objects only",
-        default = False,
-    )
+    # Object
+    m_ApplyModifiers: BoolProperty(name="Apply Modifiers", default=False)
+    m_SelectionOnly: BoolProperty(name="Selection Only", description="Export selected objects only", default=False)
 
     def draw(self, context):
         layout = self.layout
@@ -120,9 +102,16 @@ class SDModelScriberExport(Operator, ExportHelper):
 
         m_RasterRow = m_Model.row(align=True)
         m_RasterRow.scale_x = 0.5
-        m_RasterLabel = m_RasterRow.label(text="Raster State:")
+        m_RasterRow.label(text="Raster State:")
         m_RasterRow.scale_x = 0.0
         m_RasterRow.prop(self, "m_RasterState", text="")
+
+        
+        m_ExportModeRow = m_Model.row(align=True)
+        m_ExportModeRow.scale_x = 0.5
+        m_ExportModeRow.label(text="Export Mode:")
+        m_ExportModeRow.scale_x = 0.0
+        m_ExportModeRow.prop(self, "m_ExportMode", text="")
 
         m_Object = layout.box()
         m_Object.label(text="Object", icon="OBJECT_DATA")
@@ -195,6 +184,10 @@ class SDModelScriberExport(Operator, ExportHelper):
 
         # Raster State
         m_ModelScriberCmd += " -rasterstate " + self.m_RasterState
+
+        # Export Mode
+        if self.m_ExportMode == "skinned":
+            m_ModelScriberCmd += " -skinned"
 
         subprocess.run(m_ModelScriberCmd, shell=True)
 
