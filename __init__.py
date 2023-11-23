@@ -3,7 +3,7 @@ bl_info = {
     "name": "Sleeping Dogs: DE (Model Scriber)",
     "description": "Script that passes commands to noesis & model scriber.",
     "author": "sneakyevil",
-    "version": (1, 0, 2),
+    "version": (1, 0, 3),
     "blender": (2, 80, 0),
     "location": "File > Export",
     "warning": "",
@@ -83,6 +83,7 @@ class SDModelScriberExport(Operator, ExportHelper):
     # Object
     m_ApplyModifiers: BoolProperty(name="Apply Modifiers", default=False)
     m_SelectionOnly: BoolProperty(name="Selection Only", description="Export selected objects only", default=False)
+    m_GameRotation: BoolProperty(name="Game Rotation", description="Export object with game rotation", default=False)
 
     def draw(self, context):
         layout = self.layout
@@ -105,8 +106,7 @@ class SDModelScriberExport(Operator, ExportHelper):
         m_RasterRow.label(text="Raster State:")
         m_RasterRow.scale_x = 0.0
         m_RasterRow.prop(self, "m_RasterState", text="")
-
-        
+      
         m_ExportModeRow = m_Model.row(align=True)
         m_ExportModeRow.scale_x = 0.5
         m_ExportModeRow.label(text="Export Mode:")
@@ -117,6 +117,7 @@ class SDModelScriberExport(Operator, ExportHelper):
         m_Object.label(text="Object", icon="OBJECT_DATA")
         m_Object.prop(self, "m_ApplyModifiers")
         m_Object.prop(self, "m_SelectionOnly")
+        m_Object.prop(self, "m_GameRotation")
 
     def execute(self, context):     
         m_NoesisPath = bpy.context.preferences.addons[__name__].preferences.NoesisPath.replace("\"","")
@@ -128,6 +129,12 @@ class SDModelScriberExport(Operator, ExportHelper):
         if not os.path.exists(m_ModelScriberPath):
             self.report({ "ERROR" }, "Model Scriber path is invalid!")
             return { "CANCELLED" }
+
+        m_AxisForward = "-Z"
+        m_AxisUp = "Y"
+        if self.m_GameRotation:
+            m_AxisForward = "Y"
+            m_AxisUp = "Z"
 
         m_OutputDir = os.path.dirname(os.path.abspath(self.filepath))
         m_ModelName = os.path.basename(self.filepath)
@@ -151,8 +158,8 @@ class SDModelScriberExport(Operator, ExportHelper):
             group_by_object=False,
             group_by_material=False,
             keep_vertex_order=False,
-            axis_forward="-Z",
-            axis_up="Y"
+            axis_forward=m_AxisForward,
+            axis_up=m_AxisUp
         )
 
         # Noesis
