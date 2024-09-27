@@ -3,7 +3,7 @@ bl_info = {
     "name": "Sleeping Dogs: DE (Model Scriber)",
     "description": "Script that passes commands to noesis & model scriber.",
     "author": "sneakyevil",
-    "version": (1, 0, 3),
+    "version": (1, 0, 4),
     "blender": (2, 80, 0),
     "location": "File > Export",
     "warning": "",
@@ -84,63 +84,65 @@ class SDModelScriberExport(Operator, ExportHelper):
     m_ApplyModifiers: BoolProperty(name="Apply Modifiers", default=False)
     m_SelectionOnly: BoolProperty(name="Selection Only", description="Export selected objects only", default=False)
     m_GameRotation: BoolProperty(name="Game Rotation", description="Export object with game rotation", default=False)
+    m_AppendMode: BoolProperty(name="Append Mode", description="Append object to pre-existing file", default=False)
 
     def draw(self, context):
         layout = self.layout
-        m_TexBox = layout.box()
-        m_TexRow = m_TexBox.row(align=True)
-        m_TexRow.label(text="Texture Name:", icon="TEXTURE")
+        texBox = layout.box()
+        texRow = texBox.row(align=True)
+        texRow.label(text="Texture Name:", icon="TEXTURE")
         if self.m_UseModelNameAsTextureName:
-            m_TexRow.label(text="Using model name.")
+            texRow.label(text="Using model name.")
         else:
-            m_TexRow.prop(self, "m_TextureName")
-        m_TexBox.prop(self, "m_UseModelNameAsTextureName")
+            texRow.prop(self, "m_TextureName")
+        texBox.prop(self, "m_UseModelNameAsTextureName")
    
-        m_Model = layout.box()
-        m_Model.label(text="Model", icon="MESH_DATA")
-        m_Model.prop(self, "m_HasNormalMap")
-        m_Model.prop(self, "m_HasSpecularLook")
+        modelBox = layout.box()
+        modelBox.label(text="Model", icon="MESH_DATA")
+        modelBox.prop(self, "m_HasNormalMap")
+        modelBox.prop(self, "m_HasSpecularLook")
 
-        m_RasterRow = m_Model.row(align=True)
-        m_RasterRow.scale_x = 0.5
-        m_RasterRow.label(text="Raster State:")
-        m_RasterRow.scale_x = 0.0
-        m_RasterRow.prop(self, "m_RasterState", text="")
+        rasterRow = modelBox.row(align=True)
+        rasterRow.scale_x = 0.5
+        rasterRow.label(text="Raster State:")
+        rasterRow.scale_x = 0.0
+        rasterRow.prop(self, "m_RasterState", text="")
       
-        m_ExportModeRow = m_Model.row(align=True)
-        m_ExportModeRow.scale_x = 0.5
-        m_ExportModeRow.label(text="Export Mode:")
-        m_ExportModeRow.scale_x = 0.0
-        m_ExportModeRow.prop(self, "m_ExportMode", text="")
+        exportModeRow = modelBox.row(align=True)
+        exportModeRow.scale_x = 0.5
+        exportModeRow.label(text="Export Mode:")
+        exportModeRow.scale_x = 0.0
+        exportModeRow.prop(self, "m_ExportMode", text="")
 
-        m_Object = layout.box()
-        m_Object.label(text="Object", icon="OBJECT_DATA")
-        m_Object.prop(self, "m_ApplyModifiers")
-        m_Object.prop(self, "m_SelectionOnly")
-        m_Object.prop(self, "m_GameRotation")
+        objBox = layout.box()
+        objBox.label(text="Object", icon="OBJECT_DATA")
+        objBox.prop(self, "m_ApplyModifiers")
+        objBox.prop(self, "m_SelectionOnly")
+        objBox.prop(self, "m_GameRotation")
+        objBox.prop(self, "m_AppendMode")
 
     def execute(self, context):     
-        m_NoesisPath = bpy.context.preferences.addons[__name__].preferences.NoesisPath.replace("\"","")
-        if not os.path.exists(m_NoesisPath):
+        sNoesisPath = bpy.context.preferences.addons[__name__].preferences.NoesisPath.replace("\"","")
+        if not os.path.exists(sNoesisPath):
             self.report({ "ERROR" }, "Noesis path is invalid!")
             return { "CANCELLED" }
 
-        m_ModelScriberPath = bpy.context.preferences.addons[__name__].preferences.ModelScriberPath.replace("\"","")   
-        if not os.path.exists(m_ModelScriberPath):
+        sModelScriberPath = bpy.context.preferences.addons[__name__].preferences.ModelScriberPath.replace("\"","")   
+        if not os.path.exists(sModelScriberPath):
             self.report({ "ERROR" }, "Model Scriber path is invalid!")
             return { "CANCELLED" }
 
-        m_AxisForward = "-Z"
-        m_AxisUp = "Y"
+        sAxisForward = "-Z"
+        sAxisUp = "Y"
         if self.m_GameRotation:
-            m_AxisForward = "Y"
-            m_AxisUp = "Z"
+            sAxisForward = "Y"
+            sAxisUp = "Z"
 
-        m_OutputDir = os.path.dirname(os.path.abspath(self.filepath))
-        m_ModelName = os.path.basename(self.filepath)
-        m_ObjFilePath = self.filepath + ".obj"
+        sOutputDir = os.path.dirname(os.path.abspath(self.filepath))
+        sModelName = os.path.basename(self.filepath)
+        sObjFilePath = self.filepath + ".obj"
         bpy.ops.export_scene.obj(
-            filepath=m_ObjFilePath,
+            filepath=sObjFilePath,
             check_existing=False,
             use_selection=self.m_SelectionOnly,
             use_animation=False,
@@ -158,48 +160,51 @@ class SDModelScriberExport(Operator, ExportHelper):
             group_by_object=False,
             group_by_material=False,
             keep_vertex_order=False,
-            axis_forward=m_AxisForward,
-            axis_up=m_AxisUp
+            axis_forward=sAxisForward,
+            axis_up=sAxisUp
         )
 
         # Noesis
-        m_NoesisCmd = "\"" + m_NoesisPath + "\" ?cmode \"" + m_ObjFilePath + "\" \"" + m_ObjFilePath + "\""
-        subprocess.run(m_NoesisCmd, shell=True)
+        sNoesisCmd = "\"" + sNoesisPath + "\" ?cmode \"" + sObjFilePath + "\" \"" + sObjFilePath + "\""
+        subprocess.run(sNoesisCmd, shell=True)
 
         # Delete perm/temp if exist
-        m_PermFile = self.filepath + ".perm.bin"
-        if os.path.exists(m_PermFile):
-            os.remove(m_PermFile)
+        sPermFile = self.filepath + ".perm.bin"
+        if os.path.exists(sPermFile):
+            os.remove(sPermFile)
 
-        m_TempFile = self.filepath + ".temp.bin"
-        if os.path.exists(m_TempFile):
-            os.remove(m_TempFile)
+        sTempFile = self.filepath + ".temp.bin"
+        if os.path.exists(sTempFile):
+            os.remove(sTempFile)
 
         # Model Scriber
-        m_ModelScriberCmd = "\"" + m_ModelScriberPath + "\" -dir \"" + m_OutputDir + "\" -obj \"" + m_ObjFilePath + "\""
+        sModelScriberCmd = "\"" + sModelScriberPath + "\" -dir \"" + sOutputDir + "\" -obj \"" + sObjFilePath + "\""
         
-        m_TextureName = self.m_TextureName
+        sTextureName = self.m_TextureName
         if self.m_UseModelNameAsTextureName:
-            m_TextureName = m_ModelName.split("~")[0]
+            sTextureName = sModelName.split("~")[0]
 
-        if m_TextureName:
-            m_ModelScriberCmd += " -texdiffuse \"" + m_TextureName + "_D\""
+        if not sTextureName == "":
+            sModelScriberCmd += " -texdiffuse \"" + sTextureName + "_D\""
             if self.m_HasNormalMap:             
-                m_ModelScriberCmd += " -texnormal \"" + m_TextureName + "_N\""
+                sModelScriberCmd += " -texnormal \"" + sTextureName + "_N\""
             if self.m_HasSpecularLook:             
-                m_ModelScriberCmd += " -texspecular \"" + m_TextureName + "_S\""
+                sModelScriberCmd += " -texspecular \"" + sTextureName + "_S\""
 
         # Raster State
-        m_ModelScriberCmd += " -rasterstate " + self.m_RasterState
+        sModelScriberCmd += " -rasterstate " + self.m_RasterState
 
         # Export Mode
         if self.m_ExportMode == "skinned":
-            m_ModelScriberCmd += " -skinned"
+            sModelScriberCmd += " -skinned"
 
-        subprocess.run(m_ModelScriberCmd, shell=True)
+        if self.m_AppendMode:
+            sModelScriberCmd += " -append"
+
+        subprocess.run(sModelScriberCmd, shell=True)
 
         # Delete object file
-        os.remove(m_ObjFilePath)
+        os.remove(sObjFilePath)
         self.report({ "INFO" }, "Successfully exported model!")
         return { "FINISHED" }
 
